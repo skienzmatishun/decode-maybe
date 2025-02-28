@@ -26,6 +26,7 @@ pip install -r requirements.txt
 **Input:** 
 - left.raw (plaintext)
 - modified_raw/ (encrypted samples)
+
 **Output:** 
 - analysis_reports/ 
 - frequency_domain_analysis/
