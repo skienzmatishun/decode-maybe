@@ -24,13 +24,13 @@ pip install -r requirements.txt
 
 ### Directories
 **Input:** 
-left.raw (plaintext)
-modified_raw/ (encrypted samples)
+- left.raw (plaintext)
+- modified_raw/ (encrypted samples)
 **Output:** 
-analysis_reports/ 
-frequency_domain_analysis/
-entropy_analysis_results/
-decrypted_files/
+- analysis_reports/ 
+- frequency_domain_analysis/
+- entropy_analysis_results/
+- decrypted_files/
 
 ## Key Files
 ### Analysis Scripts
