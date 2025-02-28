@@ -1,0 +1,79 @@
+program:
+- Read and analyze the raw audio file (left.raw) and the encrypted audio file (right.raw).
+- Compute the frequency histograms for both files.
+- Plot the histograms.
+- Compare the histograms to identify any patterns or differences.
+- Analyze possible transformation patterns between the raw and encrypted data.
+- Identify any byte-to-byte mappings.
+- Check if the transformation could be a simple XOR with a key.
+- Test if the transformation follows the pattern: enc = (raw + key) % 256 or enc = (raw - key) % 256.
+- Test different decryption methods and evaluate results.
+- Apply the identified transformations to the encrypted data.
+- Compute histograms for the decrypted data.
+- Compare the histograms of the decrypted data with the raw data.
+- Determine the most effective decryption method.
+- Apply the best decryption method to all encrypted audio files in the modified_raw directory.
+- Save the decrypted files.
+- Validate the decrypted audio by comparing frequency distributions.
+- Generate a report summarizing the findings and recommendations.
+- Additional Analysis Methods.
+- N-gram Analysis: Analyze n-grams (sequences of n consecutive bytes) to identify patterns.
+- Sequence Alignment: Align sequences from raw and encrypted data.
+- Kolmogorov-Smirnov Test: Compare the empirical cumulative distribution functions.
+- Anderson-Darling Test: Compare distributions.
+- Supervised Learning: Train a model to predict raw data from encrypted data.
+- Unsupervised Learning: Use clustering or anomaly detection.
+- Fourier Transform: Perform Fourier transforms on raw and encrypted data.
+- Wavelet Transform: Use wavelet transforms.
+- Substitution Cipher Analysis: Check for substitution ciphers.
+- Shift Cipher Analysis: Test for simple shift ciphers.
+- Conditional Entropy: Calculate conditional entropy.
+- Mutual Information: Compute mutual information.
+- Spectrogram Analysis: Generate spectrograms.
+- Scatter Plots: Create scatter plots of raw vs. encrypted byte values.
+
+State each step of the program and show your work for performing that step.
+
+Step 1: Read and analyze the raw audio file (left.raw) and the encrypted audio file (right.raw).
+- Action: Use the read_raw_audio function to read the raw and encrypted audio files.
+- Action: Use the compute_histogram function to compute the frequency histograms for both files.
+- Action: Use the plot_histogram function to plot the histograms.
+- Action: Compare the histograms to identify any patterns or differences.
+
+Step 2: Analyze possible transformation patterns between the raw and encrypted data.
+- Action: Use the analyze_transformation_patterns function to identify any byte-to-byte mappings.
+- Action: Use the analyze_xor_key function to check if the transformation could be a simple XOR with a key.
+- Action: Use the analyze_modular_arithmetic function to test if the transformation follows the pattern: enc = (raw + key) % 256 or enc = (raw - key) % 256.
+
+Step 3: Test different decryption methods and evaluate results.
+- Action: Use the test_decryption_methods function to test different decryption methods.
+- Action: Compute histograms for the decrypted data.
+- Action: Compare the histograms of the decrypted data with the raw data.
+- Action: Determine the most effective decryption method.
+
+Step 4: Apply the best decryption method to all encrypted audio files in the modified_raw directory.
+- Action: Apply the best decryption method to all encrypted audio files in the modified_raw directory.
+- Action: Save the decrypted files.
+- Action: Validate the decrypted audio by comparing frequency distributions.
+
+Step 5: Generate a report summarizing the findings and recommendations.
+- Action: Generate a report summarizing the findings and recommendations.
+
+Step 6: Additional Analysis Methods.
+- N-gram Analysis: Use the compute_ngram_frequencies function to analyze n-grams.
+- Sequence Alignment: Use the align_sequences function to align sequences.
+- Kolmogorov-Smirnov Test: Use the kolmogorov_smirnov_test function to compare distributions.
+- Anderson-Darling Test: Use the anderson_darling_test function to compare distributions.
+- Supervised Learning: Use the train_supervised_model function to train a model.
+- Unsupervised Learning: Use the apply_unsupervised_learning function to cluster or detect anomalies.
+- Fourier Transform: Use the compute_fourier_transform function to perform Fourier transforms.
+- Wavelet Transform: Use the compute_wavelet_transform function to perform wavelet transforms.
+- Substitution Cipher Analysis: Use the analyze_substitution_cipher function to check for substitution ciphers.
+- Shift Cipher Analysis: Use the analyze_shift_cipher function to test for simple shift ciphers.
+- Conditional Entropy: Use the compute_conditional_entropy function to calculate conditional entropy.
+- Mutual Information: Use the compute_mutual_information function to compute mutual information.
+- Spectrogram Analysis: Use the generate_spectrogram function to generate spectrograms.
+- Scatter Plots: Use the plot_scatter function to create scatter plots.
+
+Answer the question and begin your answer with RESPONSE.
+- RESPONSE: Provide a detailed summary of the steps taken, the findings, and the recommendations for further actions.

@@ -1,0 +1,314 @@
+# analyzz.py
+import os
+import numpy as np
+import matplotlib.pyplot as plt
+from scipy.stats import entropy
+import glob
+from handle_raw_audio import read_raw_audio
+
+# Constants
+RAW_AUDIO_PATH = "./left.raw"
+ENCRYPTED_RAW_DIR = "./modified_raw"
+OUTPUT_DIR = "./decryption_analysis_2"
+
+def compute_histogram(data):
+    """Compute frequency histogram of byte data (0-255)."""
+    return np.bincount(data, minlength=256)
+
+def plot_histogram(hist, title, output_path):
+    """Plot the given histogram with hex values on x-axis."""
+    plt.figure(figsize=(12, 6))
+    plt.bar(range(256), hist, color="blue", alpha=0.7)
+    plt.title(title)
+    
+    # Add hex labels at key positions
+    hex_positions = list(range(0, 256, 16))
+    hex_labels = [f"{i:02X}" for i in hex_positions]
+    plt.xticks(hex_positions, hex_labels)
+    
+    plt.xlabel("Byte Value (Hex)")
+    plt.ylabel("Frequency")
+    plt.grid(axis="y", linestyle="--", alpha=0.7)
+    plt.savefig(output_path)
+    plt.close()
+
+def analyze_transformation_patterns(raw_data, encrypted_data):
+    """Analyze possible transformation patterns between raw and encrypted data."""
+    # Create a transformation mapping
+    transform_mapping = {}
+    inverse_mapping = {}
+    
+    # Find byte pairs that occur most frequently 
+    min_length = min(len(raw_data), len(encrypted_data))
+    for i in range(min_length):
+        raw_byte = raw_data[i]
+        enc_byte = encrypted_data[i]
+        
+        if raw_byte not in transform_mapping:
+            transform_mapping[raw_byte] = {}
+        
+        if enc_byte not in transform_mapping[raw_byte]:
+            transform_mapping[raw_byte][enc_byte] = 0
+        
+        transform_mapping[raw_byte][enc_byte] += 1
+        
+        # Also track inverse mapping
+        if enc_byte not in inverse_mapping:
+            inverse_mapping[enc_byte] = {}
+        
+        if raw_byte not in inverse_mapping[enc_byte]:
+            inverse_mapping[enc_byte][raw_byte] = 0
+        
+        inverse_mapping[enc_byte][raw_byte] += 1
+    
+    # Determine most likely transformation rule
+    transformation_rule = {}
+    inverse_rule = {}
+    
+    for raw_byte, mappings in transform_mapping.items():
+        most_common_enc = max(mappings.items(), key=lambda x: x[1])[0]
+        transformation_rule[raw_byte] = most_common_enc
+    
+    for enc_byte, mappings in inverse_mapping.items():
+        most_common_raw = max(mappings.items(), key=lambda x: x[1])[0]
+        inverse_rule[enc_byte] = most_common_raw
+    
+    return transformation_rule, inverse_rule
+
+def analyze_xor_key(raw_data, encrypted_data):
+    """Check if the transformation could be a simple XOR with a key."""
+    min_length = min(len(raw_data), len(encrypted_data))
+    
+    possible_keys = {}
+    for i in range(min_length):
+        key = raw_data[i] ^ encrypted_data[i]
+        if key not in possible_keys:
+            possible_keys[key] = 0
+        possible_keys[key] += 1
+    
+    # Sort by frequency
+    sorted_keys = sorted(possible_keys.items(), key=lambda x: x[1], reverse=True)
+    
+    # Test the top 5 keys
+    top_keys = [k for k, _ in sorted_keys[:5]]
+    results = []
+    
+    for key in top_keys:
+        decrypted = np.bitwise_xor(encrypted_data[:min_length], key)
+        raw_hist = compute_histogram(raw_data[:min_length])
+        decrypted_hist = compute_histogram(decrypted)
+        
+        # Use Jensen-Shannon divergence to compare histograms
+        similarity = 1.0 - entropy(raw_hist + 1, decrypted_hist + 1) / np.log(2)
+        results.append((key, similarity))
+    
+    return sorted(results, key=lambda x: x[1], reverse=True)
+
+def test_byte_mapping(raw_data, encrypted_data, output_dir):
+    """Test if there's a consistent byte-to-byte mapping."""
+    min_length = min(len(raw_data), len(encrypted_data))
+    mapping = np.zeros((256, 256), dtype=np.int32)
+    
+    for i in range(min_length):
+        mapping[raw_data[i], encrypted_data[i]] += 1
+    
+    # Plot the mapping as a heatmap
+    plt.figure(figsize=(10, 10))
+    plt.imshow(np.log1p(mapping), cmap='viridis')
+    plt.colorbar(label='log(count + 1)')
+    plt.title('Byte Mapping Heatmap (Raw → Encrypted)')
+    plt.xlabel('Encrypted Byte')
+    plt.ylabel('Raw Byte')
+    
+    # Add some hex labels
+    hex_positions = list(range(0, 256, 32))
+    hex_labels = [f"{i:02X}" for i in hex_positions]
+    plt.xticks(hex_positions, hex_labels)
+    plt.yticks(hex_positions, hex_labels)
+    
+    plt.savefig(os.path.join(output_dir, "byte_mapping_heatmap.png"))
+    plt.close()
+    
+    # Find the most common mapping for each raw byte
+    forward_mapping = {}
+    for i in range(256):
+        if np.sum(mapping[i, :]) > 0:
+            forward_mapping[i] = np.argmax(mapping[i, :])
+    
+    return forward_mapping
+
+def decrypt_with_mapping(encrypted_data, mapping):
+    """Decrypt data using a byte-to-byte mapping."""
+    decrypted = np.zeros_like(encrypted_data)
+    for i in range(len(encrypted_data)):
+        if encrypted_data[i] in mapping:
+            decrypted[i] = mapping[encrypted_data[i]]
+        else:
+            decrypted[i] = encrypted_data[i]  # Keep unchanged if no mapping
+    return decrypted
+
+def analyze_modular_arithmetic(raw_data, encrypted_data):
+    """Test if the transformation follows the pattern: enc = (raw + key) % 256 or enc = (raw - key) % 256."""
+    min_length = min(len(raw_data), len(encrypted_data))
+    
+    # Cast to int32 to avoid overflow during subtraction
+    raw_data_int32 = raw_data.astype(np.int32)
+    encrypted_data_int32 = encrypted_data.astype(np.int32)
+    
+    # Test addition
+    add_keys = {}
+    for i in range(min_length): 
+        key = (encrypted_data_int32[i] - raw_data_int32[i]) % 256
+        if key not in add_keys:
+            add_keys[key] = 0
+        add_keys[key] += 1
+    
+    # Test subtraction
+    sub_keys = {}
+    for i in range(min_length):
+        key = (raw_data_int32[i] - encrypted_data_int32[i]) % 256
+        if key not in sub_keys:
+            sub_keys[key] = 0
+        sub_keys[key] += 1
+    
+    # Get top candidates
+    top_add_keys = sorted(add_keys.items(), key=lambda x: x[1], reverse=True)[:3]
+    top_sub_keys = sorted(sub_keys.items(), key=lambda x: x[1], reverse=True)[:3]
+    
+    return {
+        "addition": top_add_keys,
+        "subtraction": top_sub_keys
+    }
+
+def test_decryption_methods(raw_data, encrypted_data, output_dir):
+    """Test different decryption methods and evaluate results."""
+    results = []
+    
+    # 1. Test XOR keys
+    xor_results = analyze_xor_key(raw_data, encrypted_data)
+    best_xor_key, best_xor_similarity = xor_results[0]
+    
+    decrypted_xor = np.bitwise_xor(encrypted_data, best_xor_key)
+    results.append(("XOR", best_xor_key, best_xor_similarity, decrypted_xor))
+    
+    # 2. Test modular arithmetic
+    mod_results = analyze_modular_arithmetic(raw_data, encrypted_data)
+    
+    # Addition (decryption is subtraction)
+    best_add_key, best_add_count = mod_results["addition"][0]
+    decrypted_add = (encrypted_data - best_add_key) % 256
+    add_similarity = 1.0 - entropy(compute_histogram(raw_data), compute_histogram(decrypted_add) + 1) / np.log(2)
+    results.append(("Addition", best_add_key, add_similarity, decrypted_add))
+    
+    # Subtraction (decryption is addition)
+    best_sub_key, best_sub_count = mod_results["subtraction"][0]
+    decrypted_sub = (encrypted_data + best_sub_key) % 256
+    sub_similarity = 1.0 - entropy(compute_histogram(raw_data), compute_histogram(decrypted_sub) + 1) / np.log(2)
+    results.append(("Subtraction", best_sub_key, sub_similarity, decrypted_sub))
+    
+    # 3. Test byte mapping
+    forward_mapping = test_byte_mapping(raw_data, encrypted_data, output_dir)
+    
+    # Invert the mapping
+    inverse_mapping = {}
+    for raw_byte, enc_byte in forward_mapping.items():
+        inverse_mapping[enc_byte] = raw_byte
+    
+    decrypted_mapping = decrypt_with_mapping(encrypted_data, inverse_mapping)
+    mapping_similarity = 1.0 - entropy(compute_histogram(raw_data), compute_histogram(decrypted_mapping) + 1) / np.log(2)
+    results.append(("Mapping", len(inverse_mapping), mapping_similarity, decrypted_mapping))
+    
+    # Sort by similarity
+    results.sort(key=lambda x: x[2], reverse=True)
+    
+    # Plot histograms for comparison
+    raw_hist = compute_histogram(raw_data)
+    
+    for method, key, similarity, decrypted in results:
+        decrypted_hist = compute_histogram(decrypted)
+        
+        plt.figure(figsize=(12, 6))
+        plt.subplot(1, 2, 1)
+        plt.bar(range(256), raw_hist, color="blue", alpha=0.5, label="Raw")
+        plt.bar(range(256), decrypted_hist, color="red", alpha=0.5, label="Decrypted")
+        plt.legend()
+        plt.title(f"{method} Decryption (Key: {key}, Similarity: {similarity:.4f})")
+        
+        plt.subplot(1, 2, 2)
+        plt.bar(range(256), np.abs(raw_hist - decrypted_hist), color="green", alpha=0.7)
+        plt.title("Absolute Difference")
+        
+        plt.tight_layout()
+        plt.savefig(os.path.join(output_dir, f"decryption_{method}_key_{key}.png"))
+        plt.close()
+        
+        # Save the decrypted data
+        with open(os.path.join(output_dir, f"decrypted_{method}_key_{key}.raw"), "wb") as f:
+            f.write(decrypted.tobytes())
+    
+    return results
+
+def main():
+    os.makedirs(OUTPUT_DIR, exist_ok=True)
+    
+    # Read raw audio data
+    raw_data = read_raw_audio(RAW_AUDIO_PATH)
+    raw_hist = compute_histogram(raw_data)
+    plot_histogram(raw_hist, "Raw Audio Frequency Distribution", 
+                 os.path.join(OUTPUT_DIR, "raw_frequency_distribution.png"))
+    
+    # Process the first encrypted file for initial analysis
+    encrypted_files = glob.glob(os.path.join(ENCRYPTED_RAW_DIR, "*.raw"))
+    if not encrypted_files:
+        print("No encrypted files found!")
+        return
+    
+    first_file = encrypted_files[0]
+    print(f"Analyzing primary file: {first_file}")
+    encrypted_data = read_raw_audio(first_file)
+    encrypted_hist = compute_histogram(encrypted_data)
+    plot_histogram(encrypted_hist, f"Encrypted Audio Frequency Distribution", 
+                 os.path.join(OUTPUT_DIR, "encrypted_frequency_distribution.png"))
+    
+    # Analyze transformation patterns
+    print("Testing possible decryption methods...")
+    decryption_results = test_decryption_methods(raw_data, encrypted_data, OUTPUT_DIR)
+    
+    # Report results
+    print("\nDecryption Method Results (Sorted by Similarity):")
+    for method, key, similarity, _ in decryption_results:
+        print(f"Method: {method}, Key: {key}, Similarity: {similarity:.4f}")
+    
+    best_method, best_key, best_similarity, best_decrypted = decryption_results[0]
+    print(f"\nBest method: {best_method} with key {best_key} (Similarity: {best_similarity:.4f})")
+    
+    # Apply the best method to all encrypted files
+    print("\nApplying best decryption method to all encrypted files...")
+    for encrypted_file in encrypted_files:
+        basename = os.path.splitext(os.path.basename(encrypted_file))[0]
+        encrypted_data = read_raw_audio(encrypted_file)
+        
+        # Apply the best decryption method
+        if best_method == "XOR":
+            decrypted = np.bitwise_xor(encrypted_data, best_key)
+        elif best_method == "Addition":
+            decrypted = (encrypted_data - best_key) % 256
+        elif best_method == "Subtraction":
+            decrypted = (encrypted_data + best_key) % 256
+        elif best_method == "Mapping":
+            # Recreate the inverse mapping for the best result
+            forward_mapping = test_byte_mapping(raw_data, read_raw_audio(first_file), OUTPUT_DIR)
+            inverse_mapping = {v: k for k, v in forward_mapping.items()}
+            decrypted = decrypt_with_mapping(encrypted_data, inverse_mapping)
+        
+        # Save the decrypted file
+        output_file = os.path.join(OUTPUT_DIR, f"decrypted_{basename}.raw")
+        with open(output_file, "wb") as f:
+            f.write(decrypted.tobytes())
+        
+        print(f"Decrypted {basename} saved to {output_file}")
+    
+    print(f"\nAll results saved to {OUTPUT_DIR}")
+
+if __name__ == "__main__":
+    main()
