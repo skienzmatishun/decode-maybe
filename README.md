@@ -23,8 +23,14 @@ pip install -r requirements.txt
 - 3. Generate top 20 most likely: `python generate_top_20.py`
 
 ### Directories
-**Input:** left.raw (plaintext), modified_raw/ (encrypted samples)
-**Output:** analysis_reports/, frequency_domain_analysis/, entropy_analysis_results/, decrypted_files/
+**Input:** 
+left.raw (plaintext)
+modified_raw/ (encrypted samples)
+**Output:** 
+analysis_reports/ 
+frequency_domain_analysis/
+entropy_analysis_results/
+decrypted_files/
 
 ## Key Files
 ### Analysis Scripts
