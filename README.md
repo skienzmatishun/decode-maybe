@@ -1,6 +1,6 @@
 # Audio Encryption Reverse Engineering
 
-## Project Description
+## Project
 Reverse-engineer encryption method used on audio files to determine transformation patterns, develop decryption methods, validate results through frequency distribution analysis, and apply solutions to larger datasets.
 
 ## Goals
