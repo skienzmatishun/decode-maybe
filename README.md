@@ -18,12 +18,9 @@ pip install -r requirements.txt
 
 ## Usage
 ### Workflow
-- 1. Generate modified samples: `python create_variable_raw.py`
-- 2. Analyze histograms: `python images_modified_raw.py`
-- 3. Brute-force XOR analysis: `python brut-force-xor.py`
-- 4. Frequency domain analysis: `python frequency_analysis.py`
-- 5. Heatmap comparison: `python heatmap_compare.py`
-- 6. Generate report: `python make_report.py`
+- 1. Generate First Report: `python report_1.py`
+- 2. Generate Second Report: `python report_2.py`
+- 3. Generate top 20 most likely: `python generate_top_20.py`
 
 ### Directories
 **Input:** left.raw (plaintext), modified_raw/ (encrypted samples)
