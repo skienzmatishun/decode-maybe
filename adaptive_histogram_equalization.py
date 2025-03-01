@@ -5,6 +5,17 @@ import matplotlib.pyplot as plt
 from skimage import exposure
 import glob
 from handle_raw_audio import read_raw_audio # Import the new function
+from dotenv import load_dotenv
+
+# Apply histogram equalization to audio data
+# Input: Raw/encrypted .raw files
+# Process:
+#    Equalizes histograms using skimage
+#    Extracts audio features (MFCCs, spectral centroid)
+# Output:
+#    Equalized histogram plots (adaptive_histogram_results/)
+
+load_dotenv()  # Load environment variables from .env file
 
 RAW_AUDIO_PATH = os.getenv("RAW_AUDIO_PATH")
 ENCRYPTED_DIR = os.getenv("ENCRYPTED_DIR")

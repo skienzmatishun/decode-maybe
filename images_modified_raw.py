@@ -1,16 +1,26 @@
+#  images_modified_raw.py
 import os
 import numpy as np
 import matplotlib.pyplot as plt
 from skimage import exposure
 import random
 import datetime
-
-# Constants
-# Add at the top of your script
 from dotenv import load_dotenv
+
+#   Purpose: Analyze/modify raw audio via histogram equalization and bit-flipping
+#   Input: left.raw (raw audio)
+# Process:
+# Computes byte frequency histograms
+# Applies adaptive histogram equalization
+# Generates files with random bit-flips (0.1%–10% of bits)
+#  Output:
+#  Histogram plots (adaptive_histogram_results/)
+#  Bit-flipped files (bit_flip_modified/)
+
+
 load_dotenv()  # Load environment variables from .env file
 
-# Update your configuration loading
+
 RAW_AUDIO_PATH = os.getenv("RAW_AUDIO_PATH")
 ENCRYPTED_DIR = os.getenv("ENCRYPTED_DIR")
 DECRYPTED_DIRS = os.getenv("DECRYPTED_DIRS").split(",")

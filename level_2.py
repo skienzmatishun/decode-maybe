@@ -1,32 +1,21 @@
-import os
 import subprocess
+import os
+from dotenv import load_dotenv
 
+load_dotenv()
 
-
-# "Intermediate Audio Data Analysis and Preparation Orchestrator"
-#
-#  This script orchestrates the execution of various data generation and modification tasks, ensuring t
-# hat raw audio data is processed, modified, and prepared for further analysis. It manages the creation 
-# of modified audio files, reads and processes raw audio data, and runs initial analyses to extract features 
-# and validate decryption. This script serves as a bridge between raw data and comprehensive analysis, 
-# preparing the data for more advanced analytical tasks.
-
-# Define directories and paths
-RAW_AUDIO_PATH = os.getenv("RAW_AUDIO_PATH")
 ENCRYPTED_DIR = os.getenv("ENCRYPTED_DIR")
-DECRYPTED_DIRS = os.getenv("DECRYPTED_DIRS").split(",")
-OUTPUT_DIR = "./level_2_results"
 
-# Ensure the output directory exists
-os.makedirs(OUTPUT_DIR, exist_ok=True)
-
-def run_script(script_name, *args):
-    """Run a Python script with the given arguments."""
-    command = ["python", script_name] + list(args)
-    subprocess.run(command, check=True)
+def run_script(script_name):
+    """Runs a Python script using subprocess."""
+    command = ['python3', script_name] # Modified line
+    try:
+        subprocess.run(command, check=True)
+        print(f"Script {script_name} executed successfully.")
+    except subprocess.CalledProcessError as e:
+        print(f"Error executing script {script_name}: {e}")
 
 def main():
-    # Step 1: Generate and modify data using Level 1 scripts
     print("Generating modified raw audio files with random bit flips...")
     run_script("create_variable_raw.py")
 

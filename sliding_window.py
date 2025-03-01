@@ -7,8 +7,15 @@ import pandas as pd
 from dotenv import load_dotenv
 import glob
 
-# Comprehensive Audio Time-Frequency Analysis Orchestrator
-
+# Entropy analysis of encrypted WAV files
+#   Input: Encrypted .wav files from modified_raw/
+#    Process:
+#        Computes sliding window entropy (window sizes: 100–1000 bytes)
+#
+#    Output:
+#
+#        Entropy plots (entropy_analysis_results/)
+#
 # This script orchestrates the analysis of audio files by performing a series of 
 # time-frequency analyses, including Constant-Q Transform (CQT) and Mel-spectrogram
 #  computations. It extracts temporal features such as zero-crossing rate and root

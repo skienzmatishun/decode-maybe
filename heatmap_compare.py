@@ -1,8 +1,18 @@
+# heatmap_compare.py
+
 import os
 import numpy as np
 import matplotlib.pyplot as plt
 from skimage import exposure
 import wave
+
+
+#    Compare raw/encrypted WAV files via histograms
+#    Input: Encrypted .wav files
+#    Process:
+#        Generates heatmaps of byte distributions
+#    Output:
+#        Heatmap plots (adaptive_histogram_results/)
 
 # Constants
 RAW_AUDIO_PATH = os.getenv("RAW_AUDIO_PATH")

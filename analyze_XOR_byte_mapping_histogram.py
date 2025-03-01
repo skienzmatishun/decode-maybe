@@ -1,21 +1,24 @@
+# analyze_XOR_byte_mapping_histogram.py
 import os
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.stats import entropy
 import glob
-from extract_audio_features import extract_audio_features
+from handle_raw_audio import read_raw_audio
+
+#    Analyze encrypted files for decryption patterns
+#    Input: Encrypted .raw files from modified_raw/
+#    Process:
+#        Tests XOR, modular arithmetic, and byte-mapping decryption methods
+#        Compares histograms between raw/decrypted data
+#    Output:
+#        Decrypted files (decryption_analysis_2/)
+#        Histogram comparisons and heatmaps
 
 # Constants
-RAW_AUDIO_PATH = os.getenv("RAW_AUDIO_PATH")
 ENCRYPTED_DIR = os.getenv("ENCRYPTED_DIR")
-DECRYPTED_DIRS = os.getenv("DECRYPTED_DIRS").split(",")
-OUTPUT_DIR = "./decryption_analysis"
-
-def read_raw_audio(file_path):
-    """Read raw audio file as a NumPy array."""
-    with open(file_path, "rb") as f:
-        return np.frombuffer(f.read(), dtype=np.uint8)
-
+OUTPUT_DIR = "./decryption_analysis_2"
+RAW_AUDIO_PATH = os.getenv("RAW_AUDIO_PATH")
 def compute_histogram(data):
     """Compute frequency histogram of byte data (0-255)."""
     return np.bincount(data, minlength=256)
@@ -43,7 +46,7 @@ def analyze_transformation_patterns(raw_data, encrypted_data):
     transform_mapping = {}
     inverse_mapping = {}
     
-    # Find byte pairs that occur most frequently
+    # Find byte pairs that occur most frequently 
     min_length = min(len(raw_data), len(encrypted_data))
     for i in range(min_length):
         raw_byte = raw_data[i]

@@ -1,13 +1,25 @@
+# transition_matrix.py
 import os
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.spatial.distance import cosine
 from scipy.stats import pearsonr
 import glob
-
-# Constants
-# Add at the top of your script
 from dotenv import load_dotenv
+
+
+#
+#    Analyze byte transition patterns between raw/encrypted data
+#
+#    Input: Raw and encrypted .raw files
+#    Process:
+#        Builds a 256x256 transition probability matrix
+#        Validates decrypted files using cosine/Pearson metrics
+#    Output:
+#        Transition heatmaps (pattern_validation_results/)
+#        Validation report (validation_report.txt)
+
+
 load_dotenv()  # Load environment variables from .env file
 
 # Update your configuration loading

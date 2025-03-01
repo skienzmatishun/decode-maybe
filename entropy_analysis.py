@@ -4,10 +4,17 @@ import numpy as np
 import scipy.stats
 import matplotlib.pyplot as plt
 from handle_raw_audio import read_raw_audio  # Import from handle_raw_audio
-
-# Constants
-# Add at the top of your script
 from dotenv import load_dotenv
+
+
+#    Sliding window entropy for encrypted raw files
+#    Input: Encrypted .raw files
+#    Process:
+#        Similar to sliding_window.py but optimized for raw files
+#    Output:
+#        Entropy plots (entropy_analysis_results/)
+
+
 load_dotenv()  # Load environment variables from .env file
 
 # Update your configuration loading

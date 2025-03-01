@@ -16,7 +16,7 @@ def flip_bits_in_file(input_file, output_file, flip_percentage=0.01):
         data = bytearray(f_in.read())
 
     num_bytes_to_flip = int(len(data) * flip_percentage)
-    
+
     for _ in range(num_bytes_to_flip):
         byte_index = random.randint(0, len(data) - 1)
         bit_index = random.randint(0, 7)  # 8 bits in a byte
