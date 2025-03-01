@@ -7,6 +7,14 @@ from skimage import exposure
 import soundfile as sf
 from extract_audio_features import extract_audio_features
 
+# This script analyzes encrypted audio files by testing multiple decryption methods and comparing their effectiveness. Below is a breakdown of its components:
+#    Analyze encrypted audio files to identify encryption patterns.
+#    Test decryption methods: XOR, modular arithmetic, and byte mapping.
+#    Compare decrypted results against raw audio using statistical analysis and visualizations.
+# Inputs
+#    Raw Audio: Unencrypted .raw audio file (via RAW_AUDIO_PATH).
+#    Encrypted Files: Directory of encrypted .raw files (via ENCRYPTED_DIR).
+#    Decrypted Files: Directories to save decrypted results (via DECRYPTED_DIRS).
 # Constants
 RAW_AUDIO_PATH = os.getenv("RAW_AUDIO_PATH")
 ENCRYPTED_DIR = os.getenv("ENCRYPTED_DIR")

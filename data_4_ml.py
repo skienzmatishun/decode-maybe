@@ -7,20 +7,25 @@ from sklearn.preprocessing import StandardScaler
 import glob
 from skimage import exposure
 import matplotlib.pyplot as plt
-
-# Import custom functions from other scripts (assuming they are in the same directory)
 from hex_frequency_dist import compute_frequency_distribution
 from similarity import compute_mse, compute_ssi, compute_pearson
 from bit_flip_analysis import analyze_bit_flips
 from aggregate_scores import aggregate_scores
 from make_charts import analyze_score_files
-
-# Configuration Parameters
-# Add at the top of your script
 from dotenv import load_dotenv
+
+# Machine Learning Feature Preparation for Audio Decryption Analysis
+#     Generate a machine learning-ready dataset from decrypted audio files.
+#    Extract features to evaluate decryption quality and encryption patterns.
+#    Normalize data for ML model compatibility.
+# Inputs
+#    Raw Audio: .raw file (via RAW_AUDIO_PATH environment variable).
+#    Decrypted Files: Directories containing decrypted .wav files (from DECRYPTED_DIRS).
+#    Encrypted Files: Optional encrypted .raw files (from ENCRYPTED_DIR) for comparative analysis.
+
+
 load_dotenv()  # Load environment variables from .env file
 
-# Update your configuration loading
 
 RAW_AUDIO_PATH = os.getenv("RAW_AUDIO_PATH")
 ENCRYPTED_DIR = os.getenv("ENCRYPTED_DIR")
