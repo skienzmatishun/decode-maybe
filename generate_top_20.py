@@ -4,10 +4,9 @@ import numpy as np
 from scipy.stats import entropy
 from sklearn.metrics import jaccard_score, cosine_similarity
 
-# Configuration
-RAW_AUDIO_PATH = "left.raw"
-ENCRYPTED_DIR = "modified_raw"
-DECRYPTED_DIR = "decrypted_files"
+RAW_AUDIO_PATH = os.getenv("RAW_AUDIO_PATH")
+ENCRYPTED_DIR = os.getenv("ENCRYPTED_DIR")
+DECRYPTED_DIRS = os.getenv("DECRYPTED_DIRS").split(",")
 REPORT_DIR = "analysis_reports"
 
 # Ensure directories exist
@@ -39,7 +38,7 @@ def main():
 
     # Collect all decrypted files
     decrypted_files = []
-    for root, _, files in os.walk(DECRYPTED_DIR):
+    for root, _, files in os.walk(DECRYPTED_DIRS):
         for file in files:
             if file.endswith('.raw'):
                 decrypted_files.append(os.path.join(root, file))

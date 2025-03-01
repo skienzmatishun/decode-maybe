@@ -7,8 +7,17 @@ import datetime
 from handle_raw_audio import read_raw_audio
 
 # Constants
-RAW_AUDIO_PATH = "./left.raw"
-ENCRYPTED_RAW_DIR = "./modified_raw"
+
+# Add at the top of your script
+from dotenv import load_dotenv
+load_dotenv()  # Load environment variables from .env file
+
+# Update your configuration loading
+RAW_AUDIO_PATH = os.getenv("RAW_AUDIO_PATH")
+ENCRYPTED_DIR = os.getenv("ENCRYPTED_DIR")
+DECRYPTED_DIRS = os.getenv("DECRYPTED_DIRS").split(",")
+OUTPUT_DIR = os.getenv("OUTPUT_DIR")
+REPORT_PATH = os.getenv("REPORT_PATH")
 OUTPUT_DIR = "./adaptive_histogram_results"
 BIT_FLIP_OUTPUT_DIR = "./bit_flip_modified"
 NUM_BIT_FLIP_FILES = 100
@@ -178,7 +187,7 @@ def main():
     analyze_bit_flipped_files(BIT_FLIP_OUTPUT_DIR, OUTPUT_DIR)
 
     # Process each encrypted RAW file
-    encrypted_raw_dir = ENCRYPTED_RAW_DIR
+    encrypted_raw_dir = ENCRYPTED_DIR
     for filename in os.listdir(encrypted_raw_dir):
         if filename.endswith(".raw"):
             filepath = os.path.join(encrypted_raw_dir, filename)

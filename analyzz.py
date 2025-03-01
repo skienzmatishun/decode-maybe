@@ -7,10 +7,9 @@ import glob
 from handle_raw_audio import read_raw_audio
 
 # Constants
-RAW_AUDIO_PATH = "./left.raw"
-ENCRYPTED_RAW_DIR = "./modified_raw"
+ENCRYPTED_DIR = os.getenv("ENCRYPTED_DIR")
 OUTPUT_DIR = "./decryption_analysis_2"
-
+RAW_AUDIO_PATH = os.getenv("RAW_AUDIO_PATH")
 def compute_histogram(data):
     """Compute frequency histogram of byte data (0-255)."""
     return np.bincount(data, minlength=256)
@@ -258,7 +257,7 @@ def main():
                  os.path.join(OUTPUT_DIR, "raw_frequency_distribution.png"))
     
     # Process the first encrypted file for initial analysis
-    encrypted_files = glob.glob(os.path.join(ENCRYPTED_RAW_DIR, "*.raw"))
+    encrypted_files = glob.glob(os.path.join(ENCRYPTED_DIR, "*.raw"))
     if not encrypted_files:
         print("No encrypted files found!")
         return

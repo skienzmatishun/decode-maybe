@@ -10,8 +10,9 @@ import datetime
 from adaptive_histogram_equalization import apply_adaptive_histogram_equalization
 
 # Constants
-RAW_AUDIO_PATH = "./left.raw" 
-ENCRYPTED_RAW_DIR = "./modified_raw"
+RAW_AUDIO_PATH = os.getenv("RAW_AUDIO_PATH")
+ENCRYPTED_DIR = os.getenv("ENCRYPTED_DIR")
+DECRYPTED_DIRS = os.getenv("DECRYPTED_DIRS").split(",")
 OUTPUT_DIR = "./decryption_analysis_2"
 BIT_FLIP_OUTPUT_DIR = "./bit_flip_modified"
 NUM_BIT_FLIP_FILES = 100
@@ -320,7 +321,7 @@ def main():
     analyze_bit_flipped_files(BIT_FLIP_OUTPUT_DIR, OUTPUT_DIR)
 
     # Process each encrypted RAW file
-    encrypted_files = glob.glob(os.path.join(ENCRYPTED_RAW_DIR, "*.raw"))
+    encrypted_files = glob.glob(os.path.join(ENCRYPTED_DIR, "*.raw"))
     if not encrypted_files:
         print("No encrypted files found!")
         return

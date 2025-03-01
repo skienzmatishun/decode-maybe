@@ -6,10 +6,17 @@ from scipy.stats import entropy, pearsonr
 from tqdm import tqdm
 from handle_raw_audio import read_raw_audio
 
+# Add at the top of your script
+from dotenv import load_dotenv
+load_dotenv()  # Load environment variables from .env file
+
+# Update your configuration loading
+RAW_AUDIO_PATH = os.getenv("RAW_AUDIO_PATH")
+ENCRYPTED_DIR = os.getenv("ENCRYPTED_DIR")
+DECRYPTED_DIRS = os.getenv("DECRYPTED_DIRS").split(",")
+OUTPUT_DIR = os.getenv("OUTPUT_DIR")
+REPORT_PATH = os.getenv("REPORT_PATH")
 # Constants
-RAW_PATH = "./left.raw"
-ENCRYPTED_PATH = "./right.raw"
-MODIFIED_RAW_DIR = "./modified_raw"
 RESULTS_DIR = "./cryptanalysis_results"
 NUM_FLIP_TRIALS = 1000
 
@@ -21,16 +28,16 @@ def differential_cryptanalysis():
     os.makedirs(RESULTS_DIR, exist_ok=True)
     
     # Load and convert data to uint8
-    raw_data = convert_to_uint8(read_raw_audio(RAW_PATH))
-    encrypted_data = convert_to_uint8(read_raw_audio(ENCRYPTED_PATH))
+    raw_data = convert_to_uint8(read_raw_audio(RAW_AUDIO_PATH))
+    encrypted_data = convert_to_uint8(read_raw_audio(ENCRYPTED_DIR))
     
     delta_inputs = []
     delta_outputs = []
     
-    modified_files = [f for f in os.listdir(MODIFIED_RAW_DIR) if f.endswith(".raw")]
+    modified_files = [f for f in os.listdir(DECRYPTED_DIRS) if f.endswith(".raw")]
     
     for filename in tqdm(modified_files, desc="Differential Analysis"):
-        mod_data = convert_to_uint8(read_raw_audio(os.path.join(MODIFIED_RAW_DIR, filename)))
+        mod_data = convert_to_uint8(read_raw_audio(os.path.join(DECRYPTED_DIRS, filename)))
         
         # Align array lengths
         min_len = min(len(encrypted_data), len(mod_data))
@@ -62,8 +69,8 @@ def differential_cryptanalysis():
 
 def linear_cryptanalysis():
     # Convert to uint8 for bitwise operations
-    raw_data = convert_to_uint8(read_raw_audio(RAW_PATH))
-    encrypted_data = convert_to_uint8(read_raw_audio(ENCRYPTED_PATH))
+    raw_data = convert_to_uint8(read_raw_audio(RAW_AUDIO_PATH))
+    encrypted_data = convert_to_uint8(read_raw_audio(ENCRYPTED_DIR))
     
     min_len = min(len(raw_data), len(encrypted_data))
     raw_data = raw_data[:min_len]
@@ -95,7 +102,7 @@ def linear_cryptanalysis():
 
 def stream_cipher_detection():
     # Convert to uint8 for analysis
-    encrypted_data = convert_to_uint8(read_raw_audio(ENCRYPTED_PATH))
+    encrypted_data = convert_to_uint8(read_raw_audio(ENCRYPTED_DIR))
     
     # Analysis code remains the same
     hist = np.bincount(encrypted_data, minlength=256)

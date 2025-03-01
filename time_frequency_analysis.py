@@ -1,4 +1,3 @@
-# time_frequency_analysis.py (revised)
 import os
 import numpy as np
 import matplotlib.pyplot as plt
@@ -6,12 +5,17 @@ import librosa
 import librosa.display
 import pandas as pd
 from handle_raw_audio import read_raw_audio
+from dotenv import load_dotenv
+import glob
+
+load_dotenv()  # Load environment variables from .env file
 
 # Constants
-RAW_PATH = "./left.raw"
-ENCRYPTED_DIR = "./modified_raw"
+RAW_AUDIO_PATH = os.getenv("RAW_AUDIO_PATH")
+ENCRYPTED_DIR = os.getenv("ENCRYPTED_DIR")
+DECRYPTED_DIRS = os.getenv("DECRYPTED_DIRS").split(",")
 OUTPUT_DIR = "./time_freq_analysis"
-SAMPLE_RATE = 16000
+SAMPLE_RATE = int(os.getenv("SAMPLE_RATE"))  # Ensure SAMPLE_RATE is an integer
 
 # CQT parameters
 CQT_BINS = 84
@@ -50,8 +54,8 @@ def extract_temporal_features(audio):
         'rms': librosa.feature.rms(y=audio, frame_length=2048, hop_length=HOP_LENGTH)[0]
     }
 
-def plot_comparison(raw_feat, enc_feat, feat_name, filename):
-    fig, ax = plt.subplots(3, 1, figsize=(14, 12))
+def plot_comparison(raw_feat, enc_feat, feat_name, filename, y_axis_type):
+    fig, ax = plt.subplots(3, 1, figsize=(16, 18))  # Increased figure size
     
     # Modified string formatting
     ax[0].set_title('Raw Audio {}'.format(feat_name))
@@ -59,7 +63,7 @@ def plot_comparison(raw_feat, enc_feat, feat_name, filename):
                            sr=SAMPLE_RATE, 
                            hop_length=HOP_LENGTH,
                            x_axis='time',
-                           y_axis=feat_name.lower(),
+                           y_axis=y_axis_type,
                            ax=ax[0])
     
     ax[1].set_title('Encrypted Audio {}'.format(feat_name))
@@ -67,7 +71,7 @@ def plot_comparison(raw_feat, enc_feat, feat_name, filename):
                            sr=SAMPLE_RATE, 
                            hop_length=HOP_LENGTH,
                            x_axis='time',
-                           y_axis=feat_name.lower(),
+                           y_axis=y_axis_type,
                            ax=ax[1])
     
     ax[2].set_title('Difference ({})'.format(feat_name))
@@ -76,11 +80,11 @@ def plot_comparison(raw_feat, enc_feat, feat_name, filename):
                                 sr=SAMPLE_RATE, 
                                 hop_length=HOP_LENGTH,
                                 x_axis='time',
-                                y_axis=feat_name.lower(),
+                                y_axis=y_axis_type,
                                 ax=ax[2])
     
     fig.colorbar(im, ax=ax, format="%+2.0f dB")
-    plt.tight_layout()
+    plt.subplots_adjust(hspace=0.5)  # Adjust vertical spacing between subplots
     plt.savefig(filename)
     plt.close()
 
@@ -92,13 +96,15 @@ def analyze_audio(raw_audio, enc_audio, basename):
     raw_cqt = compute_cqt(raw_audio)
     enc_cqt = compute_cqt(enc_audio)
     plot_comparison(raw_cqt, enc_cqt, 'CQT', 
-                    os.path.join(file_output_dir, '{}_cqt_comparison.png'.format(basename)))
+                    os.path.join(file_output_dir, '{}_cqt_comparison.png'.format(basename)),
+                    y_axis_type='cqt_note')
     
     # Mel-Spectrogram Analysis
     raw_mel = compute_mel_spectrogram(raw_audio)
     enc_mel = compute_mel_spectrogram(enc_audio)
     plot_comparison(raw_mel, enc_mel, 'Mel Spectrogram',
-                    os.path.join(file_output_dir, '{}_mel_comparison.png'.format(basename)))
+                    os.path.join(file_output_dir, '{}_mel_comparison.png'.format(basename)),
+                    y_axis_type='mel')
     
     # Temporal Features
     raw_temp = extract_temporal_features(raw_audio)
@@ -131,19 +137,36 @@ def analyze_audio(raw_audio, enc_audio, basename):
 
 def main():
     os.makedirs(OUTPUT_DIR, exist_ok=True)
-    raw_audio = read_raw_audio(RAW_PATH)
+    raw_audio = read_raw_audio(RAW_AUDIO_PATH)
     
-    encrypted_files = [f for f in os.listdir(ENCRYPTED_DIR) if f.endswith('.raw')]
+    # Process each encrypted RAW file
+    encrypted_files = glob.glob(os.path.join(ENCRYPTED_DIR, "*.raw"))
+    if not encrypted_files:
+        print("No encrypted files found in {}".format(ENCRYPTED_DIR))
+    else:
+        for encrypted_file in encrypted_files:
+            basename = os.path.splitext(os.path.basename(encrypted_file))[0]
+            filepath = os.path.join(ENCRYPTED_DIR, encrypted_file)
+            enc_audio = read_raw_audio(filepath)
+            min_len = min(len(raw_audio), len(enc_audio))
+            analyze_audio(raw_audio[:min_len], enc_audio[:min_len], basename)
     
-    for filename in encrypted_files:
-        print("Processing {}...".format(filename))
-        basename = os.path.splitext(filename)[0]
-        enc_path = os.path.join(ENCRYPTED_DIR, filename)
+    # Process each decrypted RAW file from each directory in DECRYPTED_DIRS
+    for decrypted_dir in DECRYPTED_DIRS:
+        print(f"Checking directory: {decrypted_dir}")
+        decrypted_files = glob.glob(os.path.join(decrypted_dir, "*.raw"))
         
-        enc_audio = read_raw_audio(enc_path)
-        min_len = min(len(raw_audio), len(enc_audio))
-        analyze_audio(raw_audio[:min_len], enc_audio[:min_len], basename)
-    
+        if not decrypted_files:
+            print(f"No decrypted files found in {decrypted_dir}")
+            continue
+        
+        for decrypted_file in decrypted_files:
+            basename = os.path.splitext(os.path.basename(decrypted_file))[0]
+            filepath = os.path.join(decrypted_dir, decrypted_file)
+            dec_audio = read_raw_audio(filepath)
+            min_len = min(len(raw_audio), len(dec_audio))
+            analyze_audio(raw_audio[:min_len], dec_audio[:min_len], basename)
+
     print("Analysis complete. Results saved to: {}".format(OUTPUT_DIR))
 
 if __name__ == "__main__":

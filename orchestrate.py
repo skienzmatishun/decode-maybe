@@ -4,11 +4,10 @@ import matplotlib.pyplot as plt
 from skimage import exposure
 import random
 import datetime
-
-# Constants
-# Add at the top of your script
 from dotenv import load_dotenv
-load_dotenv()  # Load environment variables from .env file
+
+# Load environment variables from .env file
+load_dotenv()
 
 # Update your configuration loading
 RAW_AUDIO_PATH = os.getenv("RAW_AUDIO_PATH")

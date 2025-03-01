@@ -16,12 +16,18 @@ from aggregate_scores import aggregate_scores
 from make_charts import analyze_score_files
 
 # Configuration Parameters
-RAW_AUDIO_PATH = "./left.raw"
-ENCRYPTED_AUDIO_PATH = "./right.raw"
-DECRYPTED_AUDIO_DIR = "./"
+# Add at the top of your script
+from dotenv import load_dotenv
+load_dotenv()  # Load environment variables from .env file
+
+# Update your configuration loading
+
+RAW_AUDIO_PATH = os.getenv("RAW_AUDIO_PATH")
+ENCRYPTED_DIR = os.getenv("ENCRYPTED_DIR")
+DECRYPTED_DIRS = os.getenv("DECRYPTED_DIRS").split(",")
+REPORT_PATH = os.getenv("REPORT_PATH")
 OUTPUT_DIR = "./ml_data"
 SCORE_TYPES = ["absdiff", "chiSquared", "euclidean", "pearson", "spearman"]
-ENCRYPTED_RAW_DIR = "./modified_raw" #add encrypted raw directory for histogram data.
 HISTOGRAM_OUTPUT_DIR = "./histogram_ml_data" #add histogram output directory
 
 def load_audio_data(filepath):
@@ -94,13 +100,13 @@ def process_decryption_results():
     raw_data = load_audio_data(RAW_AUDIO_PATH)
     results = []
     
-    for filename in os.listdir(DECRYPTED_AUDIO_DIR):
+    for filename in os.listdir(DECRYPTED_DIRS):
         if filename.startswith("decrypted_audio_") and filename.endswith(".wav"):
             print(f"Processing: {filename}")
-            decrypted_data = load_audio_data(os.path.join(DECRYPTED_AUDIO_DIR, filename))
+            decrypted_data = load_audio_data(os.path.join(DECRYPTED_DIRS, filename))
 
             encrypted_filename = filename.replace("decrypted_audio_", "").replace(".wav", ".raw")
-            encrypted_filepath = os.path.join(ENCRYPTED_RAW_DIR, encrypted_filename)
+            encrypted_filepath = os.path.join(ENCRYPTED_DIR, encrypted_filename)
 
             if os.path.exists(encrypted_filepath):
                 encrypted_data = load_audio_data(encrypted_filepath)
@@ -111,7 +117,7 @@ def process_decryption_results():
             features["filename"] = filename
             
             # Add Decryption Scores
-            scores = aggregate_scores(DECRYPTED_AUDIO_DIR)
+            scores = aggregate_scores(DECRYPTED_DIRS)
             if filename in scores:
                 features.update(scores[filename])
             

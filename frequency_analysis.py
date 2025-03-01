@@ -6,8 +6,9 @@ from scipy.signal import find_peaks
 from handle_raw_audio import read_raw_audio
 
 # Constants
-RAW_AUDIO_PATH = "./left.raw"
-ENCRYPTED_RAW_DIR = "./modified_raw"
+RAW_AUDIO_PATH = os.getenv("RAW_AUDIO_PATH")
+ENCRYPTED_DIR = os.getenv("ENCRYPTED_DIR")
+DECRYPTED_DIRS = os.getenv("DECRYPTED_DIRS").split(",")
 OUTPUT_DIR = "./frequency_domain_analysis"
 
 def compute_fft(data, sample_rate):
@@ -51,14 +52,14 @@ def main():
     print(f"Raw Audio Peaks: {raw_peaks}")
 
     # Process each encrypted RAW file
-    encrypted_files = [f for f in os.listdir(ENCRYPTED_RAW_DIR) if f.endswith(".raw")]
+    encrypted_files = [f for f in os.listdir(ENCRYPTED_DIR) if f.endswith(".raw")]
     if not encrypted_files:
         print("No encrypted files found!")
         return
 
     for encrypted_file in encrypted_files:
         basename = os.path.splitext(os.path.basename(encrypted_file))[0]
-        filepath = os.path.join(ENCRYPTED_RAW_DIR, encrypted_file)
+        filepath = os.path.join(ENCRYPTED_DIR, encrypted_file)
         encrypted_data = read_raw_audio(filepath, sr=16000)
 
         # Compute and plot FFT for encrypted audio

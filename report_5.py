@@ -10,23 +10,21 @@ import json
 import time
 from datetime import datetime
 
+# Add at the top of your script
+from dotenv import load_dotenv
+load_dotenv()  # Load environment variables from .env file
+
+# Update your configuration loading
+RAW_AUDIO_PATH = os.getenv("RAW_AUDIO_PATH")
+ENCRYPTED_DIR = os.getenv("ENCRYPTED_DIR")
+DECRYPTED_DIRS = os.getenv("DECRYPTED_DIRS").split(",")
+OUTPUT_DIR = os.getenv("OUTPUT_DIR")
+REPORT_PATH = os.getenv("REPORT_PATH")
+
 # Import functions from existing scripts
 sys.path.append('.')
 from transition_matrix import read_raw_audio, compute_histogram, validate_decryption
 from pca_analysis import compute_features_from_sliding_window, compute_pca
-
-# Constants
-RAW_AUDIO_PATH = "./left.raw"
-ENCRYPTED_RAW_DIR = "./modified_raw"
-# Multiple directories for decrypted files
-DECRYPTED_DIRS = [
-    "./bit_flip_modified/", 
-    "./modified_raw/", 
-    "./decryption_analysis_2/", 
-    "./decryption_analysis/"
-]
-OUTPUT_DIR = "./orchestration_results"
-REPORT_PATH = os.path.join(OUTPUT_DIR, "decryption_report.md")
 
 def create_directories():
     """Create necessary directories if they don't exist."""

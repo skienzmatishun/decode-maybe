@@ -5,8 +5,9 @@ from sklearn.decomposition import PCA
 from handle_raw_audio import read_raw_audio
 
 # Constants
-RAW_AUDIO_PATH = "./left.raw"
-ENCRYPTED_RAW_DIR = "./modified_raw"
+RAW_AUDIO_PATH = os.getenv("RAW_AUDIO_PATH")
+ENCRYPTED_DIR = os.getenv("ENCRYPTED_DIR")
+DECRYPTED_DIRS = os.getenv("DECRYPTED_DIRS").split(",")
 OUTPUT_DIR = "./pca_analysis"
 WINDOW_SIZE = 100  # Size of the sliding window
 STEP_SIZE = 50     # Step size for the sliding window
@@ -51,14 +52,14 @@ def main():
     print(f"Raw Audio Explained Variance Ratio: {raw_variance_ratio}")
 
     # Process each encrypted RAW file
-    encrypted_files = [f for f in os.listdir(ENCRYPTED_RAW_DIR) if f.endswith(".raw")]
+    encrypted_files = [f for f in os.listdir(ENCRYPTED_DIR) if f.endswith(".raw")]
     if not encrypted_files:
         print("No encrypted files found!")
         return
 
     for encrypted_file in encrypted_files:
         basename = os.path.splitext(os.path.basename(encrypted_file))[0]
-        filepath = os.path.join(ENCRYPTED_RAW_DIR, encrypted_file)
+        filepath = os.path.join(ENCRYPTED_DIR, encrypted_file)
         encrypted_data = read_raw_audio(filepath)
         encrypted_features = compute_features_from_sliding_window(encrypted_data, WINDOW_SIZE, STEP_SIZE)
         if encrypted_features.shape[0] < 2:

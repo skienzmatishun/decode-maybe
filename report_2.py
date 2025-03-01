@@ -3,8 +3,9 @@ import os
 
 # Configuration
 PROJECT_DIR = os.getcwd()
-RAW_AUDIO_PATH = os.path.join(PROJECT_DIR, "left.raw")
-ENCRYPTED_DIR = os.path.join(PROJECT_DIR, "modified_raw")
+RAW_AUDIO_PATH = os.getenv("RAW_AUDIO_PATH")
+ENCRYPTED_DIR = os.getenv("ENCRYPTED_DIR")
+DECRYPTED_DIRS = os.getenv("DECRYPTED_DIRS").split(",")
 REPORT_DIR = os.path.join(PROJECT_DIR, "analysis_reports")
 SCRIPTS_DIR = PROJECT_DIR
 

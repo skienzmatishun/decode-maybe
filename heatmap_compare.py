@@ -5,8 +5,9 @@ from skimage import exposure
 import wave
 
 # Constants
-RAW_AUDIO_PATH = "./left.raw"
-ENCRYPTED_WAVS_DIR = "./modified_raw"
+RAW_AUDIO_PATH = os.getenv("RAW_AUDIO_PATH")
+ENCRYPTED_DIR = os.getenv("ENCRYPTED_DIR")
+DECRYPTED_DIRS = os.getenv("DECRYPTED_DIRS").split(",")
 OUTPUT_DIR = "./adaptive_histogram_results"
 
 def read_raw_audio(file_path):

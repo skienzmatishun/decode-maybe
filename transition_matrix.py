@@ -6,9 +6,15 @@ from scipy.stats import pearsonr
 import glob
 
 # Constants
-RAW_AUDIO_PATH = "./left.raw"
-ENCRYPTED_RAW_DIR = "./modified_raw"
-DECRYPTED_DIR = "./decryption_analysis"  # Directory where decrypted files are saved
+# Add at the top of your script
+from dotenv import load_dotenv
+load_dotenv()  # Load environment variables from .env file
+
+# Update your configuration loading
+RAW_AUDIO_PATH = os.getenv("RAW_AUDIO_PATH")
+ENCRYPTED_DIR = os.getenv("ENCRYPTED_DIR")
+DECRYPTED_DIRS = os.getenv("DECRYPTED_DIRS").split(",")
+REPORT_PATH = os.getenv("REPORT_PATH")
 OUTPUT_DIR = "./pattern_validation_results"
 
 def read_raw_audio(file_path):
@@ -81,7 +87,7 @@ def main():
     raw_hist = compute_histogram(raw_data)
 
     # Process each encrypted RAW file
-    encrypted_files = glob.glob(os.path.join(ENCRYPTED_RAW_DIR, "*.raw"))
+    encrypted_files = glob.glob(os.path.join(ENCRYPTED_DIR, "*.raw"))
     if not encrypted_files:
         print("No encrypted files found!")
         return
@@ -98,20 +104,21 @@ def main():
         heatmap_path = os.path.join(OUTPUT_DIR, f"{basename}_transition_heatmap.png")
         plot_transition_heatmap(transition_matrix, f"Byte Transition Heatmap ({basename})", heatmap_path)
 
-        # Validate decrypted files
-        decrypted_files = glob.glob(os.path.join(DECRYPTED_DIR, f"decrypted_{basename}*.raw"))
-        for decrypted_file in decrypted_files:
-            decrypted_data = read_raw_audio(decrypted_file)
-            decrypted_hist = compute_histogram(decrypted_data)
+        # Validate decrypted files from each directory in DECRYPTED_DIRS
+        for decrypted_dir in DECRYPTED_DIRS:
+            decrypted_files = glob.glob(os.path.join(decrypted_dir, f"decrypted_{basename}*.raw"))
+            for decrypted_file in decrypted_files:
+                decrypted_data = read_raw_audio(decrypted_file)
+                decrypted_hist = compute_histogram(decrypted_data)
 
-            # Compute validation metrics
-            metrics = validate_decryption(raw_hist, decrypted_hist)
-            results.append({
-                "encrypted_file": encrypted_file,
-                "decrypted_file": decrypted_file,
-                "cosine_similarity": metrics["cosine_similarity"],
-                "pearson_correlation": metrics["pearson_correlation"]
-            })
+                # Compute validation metrics
+                metrics = validate_decryption(raw_hist, decrypted_hist)
+                results.append({
+                    "encrypted_file": encrypted_file,
+                    "decrypted_file": decrypted_file,
+                    "cosine_similarity": metrics["cosine_similarity"],
+                    "pearson_correlation": metrics["pearson_correlation"]
+                })
 
     # Save results to a report
     report_path = os.path.join(OUTPUT_DIR, "validation_report.txt")

@@ -1,11 +1,32 @@
+import os
 import numpy as np
 from math import gcd
-from functools import reduce
+from dotenv import load_dotenv
+import glob
+
+load_dotenv()  # Load environment variables from .env file
+
+# Constants
+RAW_AUDIO_PATH = os.getenv("RAW_AUDIO_PATH")
+ENCRYPTED_DIR = os.getenv("ENCRYPTED_DIR")
+ENCRYPTED_FILE = os.getenv("ENCRYPTED_FILE")
+DECRYPTED_DIRS = os.getenv("DECRYPTED_DIRS").split(",")
+OUTPUT_DIR = "./analysis_results"
+WINDOW_SIZE = 10000  # Size of the window for brute-force XOR
 
 def read_file(filename):
     """Reads a binary file and returns its content as a NumPy array of bytes"""
-    with open(filename, 'rb') as f:
-        return np.frombuffer(f.read(), dtype=np.uint8)
+    if not isinstance(filename, str) or not filename:
+        raise ValueError(f"Invalid filename: {filename}")
+    try:
+        with open(filename, 'rb') as f:
+            return np.frombuffer(f.read(), dtype=np.uint8)
+    except FileNotFoundError:
+        print(f"File not found: {filename}")
+        return None
+    except Exception as e:
+        print(f"Error reading file {filename}: {str(e)}")
+        return None
 
 def create_transition_matrix(raw, encrypted):
     """Creates a byte transition matrix from raw to encrypted data"""
@@ -40,10 +61,10 @@ def brute_force_xor_key(raw, encrypted, window_size=10000):
     best_similarity = -1
     min_len = min(len(raw), len(encrypted))
     window_size = min(window_size, min_len)
-    
+
     raw_window = raw[:window_size]
     encrypted_window = encrypted[:window_size]
-    
+
     for key in range(256):
         decrypted_window = encrypted_window ^ key
         similarity = calculate_similarity(decrypted_window, raw_window)
@@ -75,25 +96,75 @@ def kasiski(encrypted_data, sequence_length=3):
             break
     return current_gcd
 
-def main():
-    """Main entry point for the script"""
-    raw_data = read_file('left.raw')
-    encrypted_data = read_file('right.raw')
-    
+def analyze_file(raw_data, encrypted_data, basename, output_dir):
+    """Analyze a single encrypted or decrypted file"""
+    if encrypted_data is None:
+        print(f"Skipping analysis for {basename} due to missing data.")
+        return
+
     # Differential Analysis
     transition = create_transition_matrix(raw_data, encrypted_data)
     common_transitions = report_common_transitions(transition)
-    print("\nTop 10 byte transitions (raw -> encrypted):")
+    print(f"\nTop 10 byte transitions (raw -> {basename}):")
     for r, e, count in common_transitions:
         print(f"0x{r:02X} -> 0x{e:02X}: {count} occurrences")
-    
+
     # Key Space Exhaustion (Brute-force XOR)
-    key, similarity = brute_force_xor_key(raw_data, encrypted_data, window_size=20000)
-    print(f"\nBest XOR Key: 0x{key:02X} (Similarity Score: {similarity:.4f})")
-    
+    key, similarity = brute_force_xor_key(raw_data, encrypted_data, window_size=WINDOW_SIZE)
+    print(f"\nBest XOR Key for {basename}: 0x{key:02X} (Similarity Score: {similarity:.4f})")
+
     # Kasiski Examination
     key_length = kasiski(encrypted_data)
-    print(f"\nEstimated Key Length (Kasiski): {key_length}")
+    print(f"\nEstimated Key Length (Kasiski) for {basename}: {key_length}")
+
+def main():
+    """Main entry point for the script"""
+    os.makedirs(OUTPUT_DIR, exist_ok=True)
+
+    # Check if required environment variables are set
+    if not RAW_AUDIO_PATH:
+        print("Error: RAW_AUDIO_PATH is not set in the .env file.")
+        return
+    if not ENCRYPTED_DIR:
+        print("Error: ENCRYPTED_DIR is not set in the .env file.")
+        return
+    if not ENCRYPTED_FILE:
+        print("Error: ENCRYPTED_FILE is not set in the .env file.")
+        return
+    if not DECRYPTED_DIRS:
+        print("Error: DECRYPTED_DIRS is not set in the .env file.")
+        return
+
+    # Construct the full path for the encrypted file
+    encrypted_filepath = os.path.join(ENCRYPTED_DIR, ENCRYPTED_FILE)
+    print(f"Processing encrypted file: {encrypted_filepath}")
+
+    # Read raw audio data
+    raw_data = read_file(RAW_AUDIO_PATH)
+    if raw_data is None:
+        print(f"Failed to read raw audio file {RAW_AUDIO_PATH}. Exiting.")
+        return
+
+    # Process the encrypted file
+    encrypted_data = read_file(encrypted_filepath)
+    basename = os.path.splitext(os.path.basename(ENCRYPTED_FILE))[0]
+    analyze_file(raw_data, encrypted_data, basename, OUTPUT_DIR)
+
+    # Process each decrypted RAW file from each directory in DECRYPTED_DIRS
+    for decrypted_dir in DECRYPTED_DIRS:
+        print(f"Checking directory: {decrypted_dir}")
+        decrypted_files = glob.glob(os.path.join(decrypted_dir, "*.raw"))
+
+        if not decrypted_files:
+            print(f"No decrypted files found in {decrypted_dir}")
+            continue
+
+        for decrypted_file in decrypted_files:
+            basename = os.path.splitext(os.path.basename(decrypted_file))[0]
+            filepath = os.path.join(decrypted_dir, decrypted_file)
+            print(f"Processing file: {filepath}")
+            decrypted_data = read_file(filepath)
+            analyze_file(raw_data, decrypted_data, basename, OUTPUT_DIR)
 
 if __name__ == "__main__":
     main()

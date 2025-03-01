@@ -8,8 +8,9 @@ import soundfile as sf
 from extract_audio_features import extract_audio_features
 
 # Constants
-RAW_AUDIO_PATH = "./left.raw"
-ENCRYPTED_RAW_DIR = "./modified_raw"
+RAW_AUDIO_PATH = os.getenv("RAW_AUDIO_PATH")
+ENCRYPTED_DIR = os.getenv("ENCRYPTED_DIR")
+DECRYPTED_DIRS = os.getenv("DECRYPTED_DIRS").split(",")
 OUTPUT_DIR = "./decryption_analysis"
 BIT_FLIP_OUTPUT_DIR = "./bit_flip_modified"
 NUM_BIT_FLIP_FILES = 100

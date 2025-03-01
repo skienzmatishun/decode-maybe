@@ -5,8 +5,9 @@ import pywt
 from handle_raw_audio import read_raw_audio
 
 # Constants
-RAW_AUDIO_PATH = "./left.raw"
-ENCRYPTED_RAW_DIR = "./modified_raw"
+RAW_AUDIO_PATH = os.getenv("RAW_AUDIO_PATH")
+ENCRYPTED_DIR = os.getenv("ENCRYPTED_DIR")
+DECRYPTED_DIRS = os.getenv("DECRYPTED_DIRS").split(",")
 OUTPUT_DIR = "./wavelet_analysis"
 
 def compute_wavelet_transform(data, wavelet='db4', level=5):
@@ -36,14 +37,14 @@ def main():
     plot_wavelet_coefficients(raw_coeffs, "Raw Audio Wavelet Coefficients", os.path.join(OUTPUT_DIR, "raw_wavelet_coefficients.png"))
 
     # Process each encrypted RAW file
-    encrypted_files = [f for f in os.listdir(ENCRYPTED_RAW_DIR) if f.endswith(".raw")]
+    encrypted_files = [f for f in os.listdir(ENCRYPTED_DIR) if f.endswith(".raw")]
     if not encrypted_files:
         print("No encrypted files found!")
         return
 
     for encrypted_file in encrypted_files:
         basename = os.path.splitext(os.path.basename(encrypted_file))[0]
-        filepath = os.path.join(ENCRYPTED_RAW_DIR, encrypted_file)
+        filepath = os.path.join(ENCRYPTED_DIR, encrypted_file)
         encrypted_data = read_raw_audio(filepath)
         encrypted_coeffs = compute_wavelet_transform(encrypted_data)
         plot_wavelet_coefficients(encrypted_coeffs, f"Encrypted Audio ({basename}) Wavelet Coefficients", os.path.join(OUTPUT_DIR, f"{basename}_wavelet_coefficients.png"))

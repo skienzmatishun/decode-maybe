@@ -6,7 +6,15 @@ import matplotlib.pyplot as plt
 from handle_raw_audio import read_raw_audio  # Import from handle_raw_audio
 
 # Constants
-ENCRYPTED_RAW_DIR = "./modified_raw"  # Directory with encrypted raw files
+# Add at the top of your script
+from dotenv import load_dotenv
+load_dotenv()  # Load environment variables from .env file
+
+# Update your configuration loading
+RAW_AUDIO_PATH = os.getenv("RAW_AUDIO_PATH")
+ENCRYPTED_DIR = os.getenv("ENCRYPTED_DIR")
+DECRYPTED_DIRS = os.getenv("DECRYPTED_DIRS").split(",")
+REPORT_PATH = os.getenv("REPORT_PATH")
 OUTPUT_DIR = "./entropy_analysis_results"
 WINDOW_SIZES = [100, 500, 1000]  # Different window sizes for entropy calculation
 STEP_SIZES = [50, 250, 500]  # Different step sizes for sliding window
@@ -46,9 +54,9 @@ def plot_sliding_window_entropy(entropies, window_size, step_size, filename, out
 def main():
     os.makedirs(OUTPUT_DIR, exist_ok=True)
 
-    for filename in os.listdir(ENCRYPTED_RAW_DIR):
+    for filename in os.listdir(ENCRYPTED_DIR):
         if filename.endswith(".raw"):
-            filepath = os.path.join(ENCRYPTED_RAW_DIR, filename)
+            filepath = os.path.join(ENCRYPTED_DIR, filename)
             data = read_raw_audio(filepath)
 
             for window_size in WINDOW_SIZES:

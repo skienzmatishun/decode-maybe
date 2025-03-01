@@ -14,15 +14,12 @@ import tensorflow as tf
 from tensorflow.keras import layers, models
 from handle_raw_audio import read_raw_audio
 
-# Configuration
-RAW_DIR = "./left.raw"
-ENCRYPTED_DIR = "./modified_raw"
-RESULTS_DIR = "./ml_results"
-FEATURES_DIR = "./time_freq_analysis"
-
-# Neural Network Parameters
 AUTOENCODER_EPOCHS = 50
 BATCH_SIZE = 32
+RAW_AUDIO_PATH = os.getenv("RAW_AUDIO_PATH")
+ENCRYPTED_DIR = os.getenv("ENCRYPTED_DIR")
+DECRYPTED_DIRS = os.getenv("DECRYPTED_DIRS").split(",")
+RESULTS_DIR = "./ml_results"
 ENCODING_DIM = 64
 
 def entropy(signal):
@@ -90,7 +87,7 @@ def prepare_classification_data():
     X, y = [], []
     
     # Raw samples
-    raw_audio = read_raw_audio(RAW_DIR)
+    raw_audio = read_raw_audio(RAW_AUDIO_PATH)
     X.append(extract_features(raw_audio))
     y.append(0)
     
@@ -138,7 +135,7 @@ def build_autoencoder(input_dim):
 def autoencoder_analysis():
     """Train autoencoder to learn encryption patterns"""
     # Prepare data pairs
-    raw = read_raw_audio(RAW_DIR)
+    raw = read_raw_audio(RAW_AUDIO_PATH)
     encrypted_files = [f for f in os.listdir(ENCRYPTED_DIR) if f.endswith('.raw')]
     
     # Create dataset

@@ -6,9 +6,10 @@ from skimage import exposure
 import glob
 from handle_raw_audio import read_raw_audio # Import the new function
 
-# Constants
-RAW_AUDIO_PATH = "./left.raw"
-ENCRYPTED_RAW_DIR = "./modified_raw"
+RAW_AUDIO_PATH = os.getenv("RAW_AUDIO_PATH")
+ENCRYPTED_DIR = os.getenv("ENCRYPTED_DIR")
+DECRYPTED_DIRS = os.getenv("DECRYPTED_DIRS").split(",")
+
 OUTPUT_DIR = "./adaptive_histogram_results"
 
 def compute_histogram(data):
@@ -47,7 +48,7 @@ def main():
         print(f"Raw Audio Features: {raw_features}")
 
     # Process each encrypted RAW file
-    encrypted_files = glob.glob(os.path.join(ENCRYPTED_RAW_DIR, "*.raw"))
+    encrypted_files = glob.glob(os.path.join(ENCRYPTED_DIR, "*.raw"))
     for encrypted_file in encrypted_files:
         encrypted_data = read_raw_audio(encrypted_file)
         encrypted_hist = compute_histogram(encrypted_data)

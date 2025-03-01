@@ -1,5 +1,4 @@
 import os
-import sys
 import subprocess
 import pandas as pd
 import numpy as np
@@ -8,6 +7,7 @@ from scipy.spatial.distance import cosine
 import glob
 import json
 import time
+import sys
 from datetime import datetime
 
 # Import functions from existing scripts
@@ -16,6 +16,8 @@ from transition_matrix import read_raw_audio, compute_histogram, validate_decryp
 from pca_analysis import compute_features_from_sliding_window, compute_pca
 
 # Constants
+
+# Multiple directories for decrypted files
 RAW_AUDIO_PATH = os.getenv("RAW_AUDIO_PATH")
 ENCRYPTED_DIR = os.getenv("ENCRYPTED_DIR")
 DECRYPTED_DIRS = os.getenv("DECRYPTED_DIRS").split(",")
@@ -24,17 +26,17 @@ REPORT_PATH = os.path.join(OUTPUT_DIR, "decryption_report.md")
 
 def create_directories():
     """Create necessary directories if they don't exist."""
-    directories = [OUTPUT_DIR, DECRYPTED_DIRS]
-    for directory in directories:
+    os.makedirs(OUTPUT_DIR, exist_ok=True)
+    for directory in DECRYPTED_DIRS:
         os.makedirs(directory, exist_ok=True)
 
 def run_script(script_name):
     """Run a Python script and return its output."""
     print(f"Running {script_name}...")
     try:
-        result = subprocess.run(['python', script_name], 
-                                capture_output=True, 
-                                text=True, 
+        result = subprocess.run(['python', script_name],
+                                capture_output=True,
+                                text=True,
                                 check=True)
         print(f"Successfully executed {script_name}")
         return result.stdout
@@ -44,30 +46,43 @@ def run_script(script_name):
         print(f"Script error: {e.stderr}")
         return None
 
+def get_all_decrypted_files():
+    """Get list of all potential decrypted files from all specified directories."""
+    all_files = []
+    for directory in DECRYPTED_DIRS:
+        files = glob.glob(os.path.join(directory, "*.raw"))
+        all_files.extend(files)
+    print(f"Found {len(all_files)} potential decrypted files across all directories")
+    return all_files
+
 def analyze_histograms():
     """Analyze histograms of raw and decrypted files to calculate similarity metrics."""
     print("Analyzing histograms...")
     raw_data = read_raw_audio(RAW_AUDIO_PATH)
     raw_hist = compute_histogram(raw_data)
     
-    # Find all decrypted files
-    decrypted_files = glob.glob(os.path.join(DECRYPTED_DIRS, "*.raw"))
+    # Find all decrypted files from all directories
+    decrypted_files = get_all_decrypted_files()
     
     results = []
     for decrypted_file in decrypted_files:
         file_name = os.path.basename(decrypted_file)
-        decrypted_data = read_raw_audio(decrypted_file)
-        decrypted_hist = compute_histogram(decrypted_data)
-        
-        # Compute validation metrics
-        metrics = validate_decryption(raw_hist, decrypted_hist)
-        
-        results.append({
-            "file_name": file_name,
-            "path": decrypted_file,
-            "cosine_similarity": metrics["cosine_similarity"],
-            "pearson_correlation": metrics["pearson_correlation"]
-        })
+        try:
+            decrypted_data = read_raw_audio(decrypted_file)
+            decrypted_hist = compute_histogram(decrypted_data)
+            
+            # Compute validation metrics
+            metrics = validate_decryption(raw_hist, decrypted_hist)
+            
+            results.append({
+                "file_name": file_name,
+                "path": decrypted_file,
+                "source_dir": os.path.dirname(decrypted_file),
+                "cosine_similarity": metrics["cosine_similarity"],
+                "pearson_correlation": metrics["pearson_correlation"]
+            })
+        except Exception as e:
+            print(f"Error processing file {decrypted_file}: {e}")
     
     return results
 
@@ -84,37 +99,41 @@ def perform_pca_comparison():
     raw_features = compute_features_from_sliding_window(raw_data, window_size, step_size)
     raw_pca, _ = compute_pca(raw_features)
     
-    # Find all decrypted files
-    decrypted_files = glob.glob(os.path.join(DECRYPTED_DIRS, "*.raw"))
+    # Find all decrypted files from all directories
+    decrypted_files = get_all_decrypted_files()
     
     results = []
     for decrypted_file in decrypted_files:
         file_name = os.path.basename(decrypted_file)
         
-        # Extract features from decrypted audio
-        decrypted_data = read_raw_audio(decrypted_file)
-        decrypted_features = compute_features_from_sliding_window(decrypted_data, window_size, step_size)
-        
-        if decrypted_features.shape[0] < 2:
-            print(f"Not enough data points for PCA on {file_name}, skipping...")
-            continue
+        try:
+            # Extract features from decrypted audio
+            decrypted_data = read_raw_audio(decrypted_file)
+            decrypted_features = compute_features_from_sliding_window(decrypted_data, window_size, step_size)
             
-        decrypted_pca, _ = compute_pca(decrypted_features)
-        
-        # Calculate average distance between PCA components
-        min_len = min(len(raw_pca), len(decrypted_pca))
-        if min_len > 0:
-            distances = []
-            for i in range(min_len):
-                dist = np.linalg.norm(raw_pca[i] - decrypted_pca[i])
-                distances.append(dist)
+            if decrypted_features.shape[0] < 2:
+                print(f"Not enough data points for PCA on {file_name}, skipping...")
+                continue
+                
+            decrypted_pca, _ = compute_pca(decrypted_features)
             
-            avg_distance = np.mean(distances)
-            results.append({
-                "file_name": file_name,
-                "path": decrypted_file,
-                "pca_distance": avg_distance
-            })
+            # Calculate average distance between PCA components
+            min_len = min(len(raw_pca), len(decrypted_pca))
+            if min_len > 0:
+                distances = []
+                for i in range(min_len):
+                    dist = np.linalg.norm(raw_pca[i] - decrypted_pca[i])
+                    distances.append(dist)
+                
+                avg_distance = np.mean(distances)
+                results.append({
+                    "file_name": file_name,
+                    "path": decrypted_file,
+                    "source_dir": os.path.dirname(decrypted_file),
+                    "pca_distance": avg_distance
+                }) 
+        except Exception as e:
+            print(f"Error processing file {decrypted_file} for PCA: {e}")
     
     return results
 
@@ -135,7 +154,7 @@ def parse_ml_results():
         results = []
         for file in target_files:
             # Find corresponding decryption file
-            decrypted_file = os.path.join(DECRYPTED_DIRS, f"decrypted_{file}")
+            decrypted_file = os.path.join(DECRYPTED_DIRS[0], f"decrypted_{file}")  # Assuming decrypted files are in the first directory
             if os.path.exists(decrypted_file):
                 results.append({
                     "file_name": f"decrypted_{file}",
@@ -158,35 +177,41 @@ def combine_results(histogram_results, pca_results, ml_results):
     
     # Add histogram results
     for result in histogram_results:
-        file_name = result["file_name"]
-        if file_name not in all_files:
-            all_files[file_name] = {
+        file_path = result["path"]
+        if file_path not in all_files:
+            all_files[file_path] = {
+                "file_name": result["file_name"],
                 "path": result["path"],
+                "source_dir": result["source_dir"],
                 "metrics": {}
-            }
-        all_files[file_name]["metrics"]["cosine_similarity"] = result["cosine_similarity"]
-        all_files[file_name]["metrics"]["pearson_correlation"] = result["pearson_correlation"]
+             }
+        all_files[file_path]["metrics"]["cosine_similarity"] = result["cosine_similarity"]
+        all_files[file_path]["metrics"]["pearson_correlation"] = result["pearson_correlation"]
     
     # Add PCA results
     for result in pca_results:
-        file_name = result["file_name"]
-        if file_name not in all_files:
-            all_files[file_name] = {
+        file_path = result["path"]
+        if file_path not in all_files:
+             all_files[file_path] = {
+                "file_name": result["file_name"],
                 "path": result["path"],
+                "source_dir": result["source_dir"],
                 "metrics": {}
             }
         # Invert the distance so higher is better (like the other metrics)
-        all_files[file_name]["metrics"]["pca_similarity"] = 1.0 / (1.0 + result["pca_distance"])
+        all_files[file_path]["metrics"]["pca_similarity"] = 1.0 / (1.0 + result["pca_distance"])
     
     # Add ML results
     for result in ml_results:
-        file_name = result["file_name"]
-        if file_name not in all_files:
-            all_files[file_name] = {
+        file_path = result["path"]
+        if file_path not in all_files:
+            all_files[file_path] = {
+                "file_name": result["file_name"],
                 "path": result["path"],
+                "source_dir": result["source_dir"],
                 "metrics": {}
             }
-        all_files[file_name]["metrics"]["ml_score"] = result["ml_score"]
+        all_files[file_path]["metrics"]["ml_score"] = result["ml_score"]
     
     # Calculate composite score (weighted average of available metrics)
     weights = {
@@ -196,7 +221,7 @@ def combine_results(histogram_results, pca_results, ml_results):
         "ml_score": 0.1
     }
     
-    for file_name, data in all_files.items():
+    for file_path, data in all_files.items():
         total_weight = 0
         weighted_sum = 0
         
@@ -213,12 +238,13 @@ def combine_results(histogram_results, pca_results, ml_results):
     
     # Convert to list and sort by composite score
     results_list = []
-    for file_name, data in all_files.items():
+    for file_path, data in all_files.items():
         results_list.append({
-            "file_name": file_name,
+             "file_name": data["file_name"],
             "path": data["path"],
+            "source_dir": data["source_dir"],
             "metrics": data["metrics"],
-            "composite_score": data["composite_score"]
+             "composite_score": data["composite_score"]
         })
     
     # Sort by composite score in descending order
@@ -248,8 +274,8 @@ def generate_report(top_files):
         f.write("3. **Machine Learning Analysis**: Clustering and classification of audio features\n\n")
         
         f.write("## Top 10 Most Likely Correctly Decrypted Files\n\n")
-        f.write("| Rank | File Name | Composite Score | Cosine Similarity | Pearson Correlation | PCA Similarity | ML Score |\n")
-        f.write("|------|-----------|----------------|-------------------|---------------------|---------------|----------|\n")
+        f.write("| Rank | File Name | Source Directory | Composite Score | Cosine Similarity | Pearson Correlation | PCA Similarity | ML Score |\n")
+        f.write("|------|-----------|------------------|----------------|-------------------|---------------------|---------------|----------|\n")
         
         for i, file_data in enumerate(top_files[:10], 1):
             metrics = file_data["metrics"]
@@ -266,8 +292,12 @@ def generate_report(top_files):
                 pca = f"{pca:.4f}"
             if ml != "N/A":
                 ml = f"{ml:.4f}"
-                
-            f.write(f"| {i} | {file_data['file_name']} | {file_data['composite_score']:.4f} | ")
+            
+            source_dir = os.path.basename(os.path.dirname(file_data['source_dir']))
+            if not source_dir:
+                source_dir = file_data['source_dir']
+            
+            f.write(f"| {i} | {file_data['file_name']} | {source_dir} | {file_data['composite_score']:.4f} | ")
             f.write(f"{cosine} | {pearson} | {pca} | {ml} |\n")
         
         f.write("\n## Detailed Analysis\n\n")
@@ -301,16 +331,36 @@ def visualize_top_results(top_files):
     print("Creating visualizations...")
     
     # Prepare data for visualization
-    file_names = [f["file_name"] for f in top_files[:10]]
+    file_names = [f"{i+1}. {f['file_name'][:10]}..." for i, f in enumerate(top_files[:10])]
     scores = [f["composite_score"] for f in top_files[:10]]
+    
+    # Create color mapping based on source directory
+    dir_colors = {}
+    for file in top_files[:10]:
+        dir_name = os.path.basename(os.path.dirname(file['source_dir']))
+        if not dir_name:
+            dir_name = file['source_dir']
+        if dir_name not in dir_colors:
+            dir_colors[dir_name] = plt.cm.tab10(len(dir_colors) % 10)
+    
+    # Create bar colors based on source directory
+    bar_colors = [dir_colors[os.path.basename(os.path.dirname(f['source_dir']))] 
+                 if os.path.basename(os.path.dirname(f['source_dir']))
+                 else dir_colors[f['source_dir']] for f in top_files[:10]]
     
     # Create bar chart of composite scores
     plt.figure(figsize=(12, 6))
-    bars = plt.bar(file_names, scores, color='skyblue')
+    bars = plt.bar(file_names, scores, color=bar_colors)
     plt.xlabel('Decrypted Files')
     plt.ylabel('Composite Score')
     plt.title('Top 10 Decrypted Files by Composite Score')
     plt.xticks(rotation=45, ha='right')
+    
+    # Create legend for directories
+    legend_handles = [plt.Rectangle((0,0),1,1, color=color) for color in dir_colors.values()]
+    legend_labels = list(dir_colors.keys())
+    plt.legend(legend_handles, legend_labels, title="Source Directory")
+    
     plt.tight_layout()
     
     # Add value labels on top of each bar
@@ -323,35 +373,51 @@ def visualize_top_results(top_files):
     plt.savefig(os.path.join(OUTPUT_DIR, 'top_decrypted_files.png'))
     plt.close()
     
-    # Create radar chart for top 3 files
-    metrics = ['Cosine Similarity', 'Pearson Correlation', 'PCA Similarity', 'ML Score']
+    # Create scatter plot of cosine similarity vs pearson correlation
+    plt.figure(figsize=(10, 8))
     
     # Prepare data
-    top3_data = []
-    for file_data in top_files[:3]:
-        file_metrics = []
-        for metric in ['cosine_similarity', 'pearson_correlation', 'pca_similarity', 'ml_score']:
-            value = file_data['metrics'].get(metric, 0)
-            file_metrics.append(value)
-        top3_data.append(file_metrics)
+    x_data  = []  # cosine similarity
+    y_data = []  # pearson correlation
+    sizes = []   # composite score for point size
+    colors = []  # source directory for color
+    labels = []   # file names for labels
     
-    # Create radar chart  
-    angles = np.linspace(0, 2*np.pi, len(metrics), endpoint=False).tolist()
-    angles += angles[:1]  # Close the polygon
+    for file in top_files[:30]:  # Top 30 files for the scatter plot
+        if "cosine_similarity" in file["metrics"] and "pearson_correlation" in file["metrics"]:
+            x_data.append(file["metrics"]["cosine_similarity"])
+            y_data.append(file["metrics"]["pearson_correlation"])
+            
+            sizes.append(file["composite_score"] * 100)  # Scale up for visibility
+            
+            dir_name = os.path.basename(os.path.dirname(file['source_dir']))
+            if not dir_name:
+                dir_name = file['source_dir']
+            colors.append(dir_colors[dir_name])
+            
+            labels.append(file["file_name"])
     
-    fig, ax = plt.subplots(figsize=(8, 8), subplot_kw=dict(polar=True))
+    scatter = plt.scatter(x_data, y_data, s=sizes, c=colors, alpha=0.6)
     
-    for i, data in enumerate(top3_data):
-        data += data[:1]  # Close the polygon
-        ax.plot(angles, data, linewidth=2, label=f"File {i+1}: {top_files[i]['file_name']}")
-        ax.fill(angles, data, alpha=0.1)
+    # Add legend
+    legend_handles = [plt.Line2D([0], [0], marker='o', color='w', 
+                                  markerfacecolor=color, markersize=10) 
+                     for color in dir_colors.values()]
+    legend_labels = list(dir_colors.keys())
+    plt.legend(legend_handles, legend_labels, title="Source Directory", loc="lower right")
     
-    ax.set_xticks(angles[:-1])
-    ax.set_xticklabels(metrics)
-    ax.set_title('Metric Comparison for Top 3 Files')
-    ax.legend(loc='upper right')
+    # Label top 5 points
+    for i in range(min(5, len(x_data))):
+        plt.annotate(labels[i],  (x_data[i], y_data[i]), 
+                    xytext=(5, 5), textcoords='offset points')
     
-    plt.savefig(os.path.join(OUTPUT_DIR, 'top3_radar_chart.png'))
+    plt.xlabel('Cosine Similarity')
+    plt.ylabel('Pearson Correlation')
+    plt.title('Similarity Metrics Comparison for Top Files')
+    plt.grid(True, linestyle='--', alpha=0.7)
+    plt.tight_layout()
+    
+    plt.savefig(os.path.join(OUTPUT_DIR, 'similarity_scatter.png'))
     plt.close()
     
     print("Visualizations created.")
@@ -386,6 +452,14 @@ def main():
     print(f"Analysis complete! Time taken: {end_time - start_time:.2f} seconds")
     print(f"Report saved to: {report_path}")
     print(f"Check {OUTPUT_DIR} for visualization files.")
+    
+    # Print the top 10 files to console
+    print("\nTop 10 Most Likely Correctly Decrypted Files:")
+    print("="*80)
+    print(f"{'Rank':<10} {'File Name':<30} {'Composite Score':<20} {'Cosine Similarity':<20} {'Pearson Correlation':<20} {'PCA Similarity':<20} {'ML Score':<20}")
+    for i, file_data in enumerate(all_results[:10], 1):
+        metrics = file_data["metrics"]
+        print(f"{i:<10} {file_data['file_name']:<30} {file_data['composite_score']:.4f:<20} {metrics.get('cosine_similarity', 'N/A'):<20} {metrics.get('pearson_correlation', 'N/A'):<20} {metrics.get('pca_similarity', 'N/A'):<20} {metrics.get('ml_score', 'N/A'):<20}")
 
 if __name__ == "__main__":
     main()
